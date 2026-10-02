@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>太鼓リズムゲーム</title>
+  <!-- スタイルシートの読み込み -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fontsの読み込み（和風アーケード調フォント） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ゲーム全体コンテナ -->
+  <div id="game-container">
+
+    <!-- 画面上部：ヘッダー（タイトル、スコア、コンボ、クリアゲージ） -->
+    <header id="game-header">
+      <div class="header-top">
+        <div class="game-badge">太鼓リズムゲーム</div>
+        <div class="song-info" id="song-title-display">夏祭りラプソディ (超達人・BPM 144)</div>
+        
+        <div class="score-display">
+          <div class="score-box">
+            <span class="label">スコア</span>
+            <span class="value" id="score-text">0000000</span>
+          </div>
+          <div class="combo-box">
+            <span class="label">コンボ</span>
+            <span class="value" id="combo-text">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 画面上部：クリアゲージ（70%でノルマ達成クリア） -->
+      <div class="gauge-container">
+        <span class="gauge-label">魂ゲージ</span>
+        <div class="gauge-track">
+          <!-- 70% ノルマ達成境界線 -->
+          <div class="clear-line" style="left: 70%;"></div>
+          <!-- ゲージバー本体 -->
+          <div class="gauge-bar" id="gauge-bar" style="width: 0%;"></div>
+        </div>
+        <span class="gauge-percent" id="gauge-percent">0%</span>
+      </div>
+
+      <!-- 楽曲進行プログレスバー -->
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+      </div>
+    </header>
+
+    <!-- 画面中央：音符が右から左へ流れる太鼓レーン (Canvas描画 & 3秒待機カウントダウン) -->
+    <main id="lane-section">
+      <canvas id="lane-canvas" width="1000" height="170"></canvas>
+      <!-- 3秒カウントダウンオーバーレイ -->
+      <div id="countdown-overlay" class="countdown-overlay">
+        <div class="countdown-badge" id="countdown-badge">まもなく演奏開始！</div>
+        <div class="countdown-number" id="countdown-number">3</div>
+        <div class="countdown-sub" id="countdown-sub">Fキー(ドン)・Jキー(カッ)の準備！</div>
+      </div>
+    </main>
+
+    <!-- 画面下部：太鼓ビジュアライザー & 操作キーガイド -->
+    <footer id="control-section">
+      <!-- バーチャル太鼓（クリック・タップでも叩けます） -->
+      <div id="drum-visualizer">
+        <!-- 太鼓のフチ（青色・カッ） -->
+        <div class="drum-rim" id="drum-rim" title="太鼓のフチ（J または K）">
+          <!-- 太鼓の面（赤色・ドン） -->
+          <div class="drum-face" id="drum-face" title="太鼓の面（F または D）">
+            <div class="drum-logo">太鼓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作方法ガイド & 操作ボタン群 (大音符F/J対応) -->
+      <div class="keys-container">
+        <div class="key-button don-big" id="btn-don-big">
+          <kbd>D</kbd>
+          <div class="btn-text">ドン（大）</div>
+          <div class="btn-sub">大赤音符 (Fでも可)</div>
+        </div>
+
+        <div class="key-button don-normal" id="btn-don">
+          <kbd>F</kbd>
+          <div class="btn-text">ドン</div>
+          <div class="btn-sub">赤音符 (大音符もOK)</div>
+        </div>
+
+        <div class="key-button ka-normal" id="btn-ka">
+          <kbd>J</kbd>
+          <div class="btn-text">カッ</div>
+          <div class="btn-sub">青音符 (大音符もOK)</div>
+        </div>
+
+        <div class="key-button ka-big" id="btn-ka-big">
+          <kbd>K</kbd>
+          <div class="btn-text">カッ（大）</div>
+          <div class="btn-sub">大青音符 (Jでも可)</div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- タイトル画面オーバーレイ (アイコンなし・白基調) -->
+    <div id="title-modal" class="modal-overlay active">
+      <div class="modal-card">
+        <h1 class="title-logo">太鼓リズムゲーム</h1>
+        <p class="title-sub">ブラウザで太鼓を叩いてリズムに乗ろう！</p>
+
+        <!-- 操作方法の明記 -->
+        <div class="operation-guide">
+          <h2>【 操作方法 】</h2>
+          <div style="font-size: 11px; color: #b45309; font-weight: bold; margin-bottom: 8px; text-align: center;">
+            ★ 大音符も F や J キーでそのまま叩けます！
+          </div>
+          <ul>
+            <li><span class="key-tag key-don">F</span> ： ドン（赤音符 / 大音符もOK）</li>
+            <li><span class="key-tag key-ka">J</span> ： カッ（青音符 / 大音符もOK）</li>
+            <li><span class="key-tag key-don-big">D</span> ： ドン（大）（またはFキー）</li>
+            <li><span class="key-tag key-ka-big">K</span> ： カッ（大）（またはJキー）</li>
+          </ul>
+        </div>
+
+        <!-- 楽曲選択 -->
+        <div class="song-select-box">
+          <label for="song-select">演奏曲を選択：</label>
+          <select id="song-select">
+            <option value="matsuri">夏祭りラプソディ (超達人・超激辛鬼譜面・BPM 144)</option>
+            <option value="beginner">初陣の調べ (超上級・激闘乱舞・BPM 138)</option>
+            <option value="raijin">雷神乱舞 (極限・神速鬼滅級・BPM 172)</option>
+          </select>
+        </div>
+
+        <!-- STARTボタン -->
+        <button id="start-button" class="action-btn start-btn">
+          START
+        </button>
+      </div>
+    </div>
+
+    <!-- 結果（リザルト）画面オーバーレイ -->
+    <div id="result-modal" class="modal-overlay">
+      <div class="modal-card">
+        <!-- クリア / FAILED 判定 -->
+        <h1 id="result-status" class="result-title clear">クリア！</h1>
+        <p id="result-sub" class="result-subtitle">ノルマ達成おめでとう！</p>
+
+        <!-- 成績表 -->
+        <div class="result-stats">
+          <div class="stat-row highlight">
+            <span>スコア</span>
+            <span id="res-score" class="num">0</span>
+          </div>
+          <div class="stat-row">
+            <span>最大コンボ</span>
+            <span id="res-max-combo" class="num">0</span>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-cell great">
+              <span class="cell-label">良 (100/200点)</span>
+              <span id="res-great" class="num">0</span>
+            </div>
+            <div class="stat-cell good">
+              <span class="cell-label">可 (50/100点)</span>
+              <span id="res-good" class="num">0</span>
+            </div>
+            <div class="stat-cell miss">
+              <span class="cell-label">不可 (0点)</span>
+              <span id="res-miss" class="num">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- もう一度遊ぶボタン -->
+        <button id="retry-button" class="action-btn retry-btn">
+          もう一度遊ぶ
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ゲームロジック用スクリプト -->
+  <script src="script.js"></script>
+</body>
+</html>

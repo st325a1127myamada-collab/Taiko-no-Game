@@ -1,0 +1,658 @@
+/* ==========================================================
+   太鼓リズムゲーム スタイルシート (style.css)
+   白を基調とした爽快な和風アーケードデザイン (画面揺れなし仕様)
+   ========================================================== */
+
+/* 全体リセット & 基本フォント設定 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+/* メインゲーム枠 (白・清潔感ある和風アーケードカード) */
+#game-container {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 3px solid #d97706;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 15px rgba(217, 119, 6, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ----------------------------------------------------------
+   ヘッダー（スコア、コンボ、クリアゲージ）
+   ---------------------------------------------------------- */
+#game-header {
+  background: #ffffff;
+  border-bottom: 2px solid #fed7aa;
+  padding: 12px 20px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.game-badge {
+  background: linear-gradient(135deg, #dc2626, #f59e0b);
+  color: #fff;
+  font-family: 'Dela Gothic One', cursive;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 5px rgba(220, 38, 38, 0.3);
+}
+
+.song-info {
+  font-size: 14px;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.score-box, .combo-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.score-box .label, .combo-box .label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: bold;
+}
+
+.score-box .value {
+  font-family: 'Dela Gothic One', monospace;
+  font-size: 24px;
+  color: #dc2626;
+  letter-spacing: 1px;
+}
+
+.combo-box .value {
+  font-family: 'Dela Gothic One', monospace;
+  font-size: 24px;
+  color: #d97706;
+  transition: transform 0.1s;
+}
+
+/* 魂クリアゲージ */
+.gauge-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.gauge-label {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 12px;
+  color: #9a3412;
+  white-space: nowrap;
+}
+
+.gauge-track {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  background-color: #f1f5f9;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.clear-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #d97706;
+  z-index: 5;
+  box-shadow: 0 0 5px #d97706;
+}
+
+.gauge-bar {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444, #eab308);
+  transition: width 0.12s linear;
+}
+
+.gauge-percent {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 13px;
+  color: #334155;
+  width: 45px;
+  text-align: right;
+}
+
+/* 楽曲進捗バー */
+.progress-track {
+  width: 100%;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #dc2626);
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+  transition: width 0.1s linear;
+}
+
+/* ----------------------------------------------------------
+   音符レーン (Canvas描画エリア)
+   ---------------------------------------------------------- */
+#lane-section {
+  position: relative;
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 2px solid #fed7aa;
+  border-bottom: 2px solid #fed7aa;
+  overflow: hidden;
+}
+
+#lane-canvas {
+  width: 100%;
+  height: 170px;
+  display: block;
+}
+
+/* 3秒カウントダウン待機演出 */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(2px);
+  z-index: 25;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.countdown-overlay.active {
+  display: flex;
+}
+
+.countdown-badge {
+  font-size: 12px;
+  font-weight: bold;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 3px 14px;
+  border-radius: 9999px;
+  margin-bottom: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.countdown-number {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 72px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #dc2626, #d97706, #dc2626);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+  text-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+  animation: countPulse 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.countdown-sub {
+  font-size: 12px;
+  color: #475569;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+@keyframes countPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1.0); opacity: 1; }
+}
+
+/* ----------------------------------------------------------
+   操作パネル & 太鼓ビジュアライザー
+   ---------------------------------------------------------- */
+#control-section {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+}
+
+/* 太鼓本体 */
+#drum-visualizer {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  background: radial-gradient(circle, #92400e, #451a03);
+  border: 4px solid #292524;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.drum-rim {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 9px solid #1d4ed8;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.08s ease;
+}
+
+.drum-rim.active {
+  border-color: #60a5fa;
+  background-color: rgba(59, 130, 246, 0.25);
+  transform: scale(0.96);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+}
+
+.drum-face {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #ef4444, #b91c1c);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.08s ease;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.drum-face.active {
+  background: radial-gradient(circle at 40% 40%, #f87171, #dc2626);
+  transform: scale(0.92);
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
+}
+
+.drum-logo {
+  font-family: 'Dela Gothic One', cursive;
+  color: #ffffff;
+  font-size: 17px;
+  letter-spacing: 2px;
+}
+
+/* 操作キーボタン群 */
+.keys-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.key-button {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.08s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.key-button kbd {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.key-button .btn-text {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 15px;
+}
+
+.key-button .btn-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* 各キーの色分け */
+.key-button.don-normal {
+  border-color: #fca5a5;
+}
+.key-button.don-normal .btn-text {
+  color: #dc2626;
+}
+.key-button.don-normal.active, .key-button.don-normal:active {
+  background: #fee2e2;
+  border-color: #ef4444;
+  transform: scale(0.95);
+}
+
+.key-button.ka-normal {
+  border-color: #93c5fd;
+}
+.key-button.ka-normal .btn-text {
+  color: #2563eb;
+}
+.key-button.ka-normal.active, .key-button.ka-normal:active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  transform: scale(0.95);
+}
+
+.key-button.don-big {
+  border-color: #fcd34d;
+}
+.key-button.don-big .btn-text {
+  color: #d97706;
+}
+.key-button.don-big.active, .key-button.don-big:active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: scale(0.95);
+}
+
+.key-button.ka-big {
+  border-color: #67e8f9;
+}
+.key-button.ka-big .btn-text {
+  color: #0891b2;
+}
+.key-button.ka-big.active, .key-button.ka-big:active {
+  background: #cffafe;
+  border-color: #06b6d4;
+  transform: scale(0.95);
+}
+
+/* ----------------------------------------------------------
+   モーダル（タイトル画面・結果画面）
+   ---------------------------------------------------------- */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: #ffffff;
+  border: 3px solid #d97706;
+  border-radius: 20px;
+  padding: 30px 40px;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+}
+
+.title-logo {
+  font-family: 'Dela Gothic One', cursive;
+  font-size: 38px;
+  color: #dc2626;
+  text-shadow: 0 2px 0 #fee2e2;
+  margin-bottom: 6px;
+}
+
+.title-sub {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* 操作ガイド */
+.operation-guide {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.operation-guide h2 {
+  font-size: 13px;
+  color: #b45309;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.operation-guide ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.key-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: bold;
+  color: #fff;
+  margin-right: 4px;
+}
+.key-don { background: #dc2626; }
+.key-ka { background: #2563eb; }
+.key-don-big { background: #d97706; }
+.key-ka-big { background: #0891b2; }
+
+/* 楽曲選択セレクトボックス */
+.song-select-box {
+  margin-bottom: 24px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #334155;
+}
+
+.song-select-box select {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+/* アクションボタン */
+.action-btn {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 22px;
+  padding: 14px 45px;
+  border-radius: 35px;
+  border: 2px solid #fde047;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 2px;
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #dc2626, #f59e0b);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+}
+
+.start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+}
+
+.retry-btn {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.retry-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6);
+}
+
+/* リザルト画面固有スタイル */
+.result-title {
+  font-family: 'Dela Gothic One', cursive;
+  font-size: 46px;
+  margin-bottom: 4px;
+}
+
+.result-title.clear {
+  color: #dc2626;
+  text-shadow: 0 2px 0 #fef08a;
+}
+
+.result-title.failed {
+  color: #64748b;
+}
+
+.result-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.result-stats {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 15px;
+  color: #334155;
+}
+
+.stat-row.highlight .num {
+  font-size: 26px;
+  color: #dc2626;
+}
+
+.stat-row .num {
+  font-family: 'Dela Gothic One', monospace;
+  font-size: 20px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.stat-cell {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-cell .cell-label {
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.stat-cell.great .cell-label { color: #d97706; }
+.stat-cell.good .cell-label { color: #2563eb; }
+.stat-cell.miss .cell-label { color: #dc2626; }
+
+.stat-cell .num {
+  font-family: 'Dela Gothic One', monospace;
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+/* スマホ・レスポンシブ対応 */
+@media (max-width: 640px) {
+  .keys-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .title-logo {
+    font-size: 28px;
+  }
+  .modal-card {
+    padding: 20px;
+  }
+  .operation-guide ul {
+    grid-template-columns: 1fr;
+  }
+}
